@@ -13,8 +13,10 @@
     "*.{js,jsx,ts,tsx,md,html,css}": "npm -v"
   },
   "dependencies": {
+    "pinia": "^2.1.7",
     "three": "^0.162.0",
-    "vue": "^3.4.19"
+    "vue": "^3.4.19",
+    "vue-router": "4"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.3",
