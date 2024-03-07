@@ -1,0 +1,2 @@
+# 文件过滤
+npx lint-staged
