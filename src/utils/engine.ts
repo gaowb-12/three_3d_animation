@@ -8,10 +8,12 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import Stats from "three/examples/jsm/libs/stats.module.js";
+import { loadCharactor } from "./loaders/loadModel";
+import { EventDispatcherParameters, EventManager } from "./events/eventManager";
 
 export class Engine extends Scene {
   private dom: HTMLElement;
-  private camera: PerspectiveCamera;
+  public camera: PerspectiveCamera;
   private renderer: WebGLRenderer;
   private controls: OrbitControls;
   private stats: Stats;
@@ -44,14 +46,22 @@ export class Engine extends Scene {
     // 设置相机朝上方向
     this.camera.up = new Vector3(0, 1, 0);
 
+    // 加载模型
+    loadCharactor(this)
+    // 绑定屏幕事件
+    let eventManager = new EventManager(this.dom, this.camera, this)
+    eventManager.addEventListener("click", (event)=>{
+      (event as any).intersectObjects
+    })
+
     // 控制器
     this.controls = new OrbitControls( this.camera, this.renderer.domElement );
     // 由控件所使用的鼠标操作的引用。
-    this.controls.mouseButtons = {
-        LEFT: null,
-        MIDDLE: MOUSE.DOLLY,
-        RIGHT: MOUSE.ROTATE,
-    }
+    // this.controls.mouseButtons = {
+    //     LEFT: null,
+    //     MIDDLE: MOUSE.DOLLY,
+    //     RIGHT: MOUSE.ROTATE,
+    // }
 
     // 性能监视器
     this.stats = new Stats();
