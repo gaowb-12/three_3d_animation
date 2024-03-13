@@ -1,13 +1,8 @@
-import { Box3, Vector3, Camera, Group, Object3D } from "three";
+import { Box3, Vector3 } from "three";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { Engine } from "../engine";
 
-declare module "three" {
-    interface Object3D {
-        isCamera: any
-    }
-}
 export function loadCharactor(scene: Engine): Promise<GLTF>{
     const glbLoader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
@@ -17,11 +12,10 @@ export function loadCharactor(scene: Engine): Promise<GLTF>{
     glbLoader.setDRACOLoader( dracoLoader );
     
     return glbLoader.loadAsync("/models/glb/glb-6.glb", ( xhr )=>{
-		console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+		// console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 	})
     .then(gltf=>{
         const model = gltf.scene;
-        console.log(model)
         // 获取包围盒
         const box = new Box3().setFromObject(model);
         // 获取包围盒大小

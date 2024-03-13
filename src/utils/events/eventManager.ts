@@ -6,7 +6,7 @@ import {
   Raycaster,
   Scene,
   Vector2,
-  BaseEvent
+  Mesh,
 } from "three";
 
 export interface EventDispatcherParameters {
@@ -23,24 +23,38 @@ export class EventManager extends EventDispatcher<EventDispatcherParameters> {
     this.dom = dom;
     this.camera = camera;
     this.scene = scene;
+    this.init()
   }
   init() {
     this.onClick();
   }
-  onClick() {
-    const raycaster = new Raycaster();
-    // 通过摄像机和鼠标位置更新射线
-    raycaster.setFromCamera(this.pointer, this.camera);
-    // 计算物体和射线的焦点
-    const intersects = raycaster.intersectObjects(this.scene.children);
-    for (let i = 0; i < intersects.length; i++) {
-      // intersects[ i ].object.material.color.set( 0xff0000 );
-    }
-    this.dom.addEventListener("click", () => {
-      this.dispatchEvent<any>({
-        type: "click",
-        intersectObjects: intersects
-      });
+  private onClick() {
+    this.dom.addEventListener("click", (event: MouseEvent) => {
+        const domX = event.offsetX
+        const domY = event.offsetY
+        const width = this.dom.offsetWidth
+        const height = this.dom.offsetHeight
+        // 坐标位置归一化，将屏幕canvas坐标系，转换为webgl归一化坐标
+        this.pointer.x = domX * 2 / width - 1;
+        this.pointer.y = -domY * 2 / height + 1;
+        const raycaster = new Raycaster();
+        // 通过摄像机和鼠标位置更新射线
+        raycaster.setFromCamera(this.pointer, this.camera);
+        // 计算物体和射线的焦点
+        const intersects = raycaster.intersectObjects(this.scene.children, true) as Intersection<Mesh>[];
+        // 过滤得到网格模型
+        const intersectObjects = intersects.filter(item=>{
+            let object = item.object
+            return object.isMesh && object.material && object.type == 'SkinnedMesh'
+        })
+        let intersectObject: Mesh | null = null
+        if(intersectObjects.length > 0 ){
+            intersectObject = intersectObjects[0].object;
+        }
+        this.dispatchEvent<any>({
+            type: "click",
+            intersectObject
+        });
     });
   }
 }
