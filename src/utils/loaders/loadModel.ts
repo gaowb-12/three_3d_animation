@@ -29,7 +29,7 @@ export function loadCharactor(scene: Engine): Promise<GLTF>{
         // 设置模型位置
         model.position.sub(center.multiplyScalar(scale))
         scene.add( model );
-        scene.camera.position.set(0, 2, 6);
+        scene.camera.position.set(0, 7, 15);
         // 设置相机坐标系
 	    scene.camera.updateProjectionMatrix();
         return gltf

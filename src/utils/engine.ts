@@ -150,7 +150,7 @@ export class Engine extends Scene {
     this.modelEvent()
   }
   initAnimation(gltf: GLTF){
-    let modelAnimation = new ModelAnimation(gltf);
+    let modelAnimation = new ModelAnimation(gltf, this);
     modelAnimation.start()
   }
 
