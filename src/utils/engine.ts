@@ -8,7 +8,13 @@ import {
   Mesh,
   Box3,
   Material,
-  MeshPhongMaterial
+  MeshPhongMaterial,
+  WebGLRenderTarget,
+  Vector2,
+  Object3D,
+  LinearFilter,
+  RGBAFormat,
+  ShaderMaterial
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import Stats from "three/examples/jsm/libs/stats.module.js";
@@ -17,11 +23,17 @@ import { EventManager } from "./events/eventManager";
 import { ModelAnimation } from "./animations/modelAnimation";
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { EffectComposer, FXAAShader, OutlinePass, OutputPass, RenderPass, ShaderPass, UnrealBloomPass } from "three/examples/jsm/Addons.js";
+import { vertexShader, fragmentShader } from "./shaders/bloomShader"
 
 export class Engine extends Scene {
   private dom: HTMLElement;
   public camera: PerspectiveCamera;
   private renderer: WebGLRenderer;
+  private effectComposer!: EffectComposer;
+  private outlinePass!: OutlinePass;
+  private unrealBloomPass!: UnrealBloomPass;
+  private shaderPass!: ShaderPass;
   private controls: OrbitControls;
   private transformControls!: TransformControls
   private stats: Stats;
@@ -81,6 +93,7 @@ export class Engine extends Scene {
     statsDom.style.left = '5px'
     statsDom.style.top = '0'
 
+    this.renderer.setPixelRatio( window.devicePixelRatio );
     //设置页面大小
     this.renderer.setSize(window.innerWidth, window.innerHeight, true);
     // 添加场景到页面上
@@ -89,6 +102,72 @@ export class Engine extends Scene {
 
     // 渲染数据
     this.animate();
+  }
+  createEffectComposer(){
+    const { clientWidth, clientHeight } = this.dom;
+    // 创建合成器
+    this.effectComposer = new EffectComposer(this.renderer, new WebGLRenderTarget(clientWidth, clientHeight))
+    // 创建第一个渲染通道（无后期效果）
+    let renderPass = new RenderPass(this, this.camera)
+    this.effectComposer.addPass(renderPass)
+
+    // 增加外轮廓效果
+    this.outlinePass = new OutlinePass(new Vector2(clientWidth, clientHeight), this, this.camera)
+		this.outlinePass.visibleEdgeColor = new Color('#FF8C00') // 可见边缘的颜色
+		this.outlinePass.hiddenEdgeColor = new Color('#8a90f3') // 不可见边缘的颜色
+		this.outlinePass.edgeGlow = 2 // 发光强度
+		this.outlinePass.usePatternTexture = false // 是否使用纹理图案
+		this.outlinePass.edgeThickness = 1 // 边缘浓度
+		this.outlinePass.edgeStrength = 4 // 边缘的强度，值越高边框范围越大
+		this.outlinePass.pulsePeriod = 200 // 闪烁频率，值越大频率越低
+		this.effectComposer.addPass(this.outlinePass)
+
+    // let outputPass = new OutputPass()
+		// this.effectComposer.addPass(outputPass)
+
+    // 添加抗锯齿效果
+    let effectFXAA = new ShaderPass(FXAAShader)
+    const pixelRatio = this.renderer.getPixelRatio()
+		effectFXAA.uniforms.resolution.value.set(1 / (clientWidth * pixelRatio), 1 / (clientHeight * pixelRatio))
+		effectFXAA.renderToScreen = true
+		effectFXAA.needsSwap = true
+    this.effectComposer.addPass(effectFXAA)
+
+    //创建辉光效果(UnrealBloomPass符合unreal引擎的辉光效果)
+		this.unrealBloomPass = new UnrealBloomPass(new Vector2(clientWidth, clientHeight), 1.5, 0.4, 0.85)
+		// 辉光合成器
+		const renderTargetParameters = {
+			minFilter: LinearFilter,
+			format: RGBAFormat,
+			stencilBuffer: false,
+		};
+
+    // 辉光合成器
+    let glowComposer = new EffectComposer(this.renderer,  new WebGLRenderTarget(clientWidth, clientHeight, renderTargetParameters))
+    glowComposer.renderToScreen = false
+    let glowRenderPass = new RenderPass(this, this.camera)
+    glowComposer.addPass(glowRenderPass)
+		glowComposer.addPass(this.unrealBloomPass)
+    
+    // 着色器（合成两个合成器）
+    this.shaderPass = new ShaderPass(new ShaderMaterial({
+			uniforms: {
+				baseTexture: { value: null },
+				bloomTexture: { value: glowComposer.renderTarget2.texture },
+				tDiffuse: { value: null },
+				glowColor: { value: null }
+			},
+			vertexShader,
+			fragmentShader,
+			defines: {}
+		}), 'baseTexture')
+
+		this.shaderPass.material.uniforms.glowColor.value = new Color();
+		this.shaderPass.renderToScreen = true;
+		this.shaderPass.needsSwap = true;
+		// this.shaderPass.name = 'ShaderColor'
+    glowComposer.render()
+    this.effectComposer.render()
   }
   transformControlsEvent(){
     // 设置与OrbitControls事件隔离
@@ -127,7 +206,7 @@ export class Engine extends Scene {
         // const center = boundingBox.getCenter(new Vector3());
         // intersectObject.userData.dragPosition = center
         // this.transformControls.position.copy(center);
-        
+        this.createEffectComposer()
         this.add(this.transformControls)
         this.transformControls.attach(intersectObject)
         
