@@ -24,7 +24,7 @@ export function loadCharactor(scene: Engine): Promise<GLTF>{
 	    const center = box.getCenter(new Vector3());
 
         // 设置模型缩放
-        const scale = 2
+        const scale = 4
         model.scale.set(scale,scale,scale)
         // 设置模型位置
         model.position.sub(center.multiplyScalar(scale))
