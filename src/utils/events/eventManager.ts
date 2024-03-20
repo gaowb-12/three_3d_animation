@@ -45,7 +45,7 @@ export class EventManager extends EventDispatcher<EventDispatcherParameters> {
         // 过滤得到网格模型
         const intersectObjects = intersects.filter(item=>{
             let object = item.object
-            return object.isMesh && object.material && object.type == 'SkinnedMesh'
+            return object.isMesh && object.material
         })
         let intersectObject: Mesh | null = null
         if(intersectObjects.length > 0 ){

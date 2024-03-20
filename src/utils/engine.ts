@@ -16,7 +16,14 @@ import {
   RGBAFormat,
   ShaderMaterial,
   ReinhardToneMapping,
-  PointLight
+  PointLight,
+  MeshStandardMaterial,
+  TextureLoader,
+  Texture,
+  MirroredRepeatWrapping,
+  SRGBColorSpace,
+  PCFSoftShadowMap,
+  AmbientLight
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import Stats from "three/examples/jsm/libs/stats.module.js";
@@ -71,9 +78,11 @@ export class Engine extends Scene {
     this.camera.up = new Vector3(0, 1, 0);
 
     // 添加聚光灯
+    const ambientLight = new AmbientLight( 0xffffff);
     const pointLight = new PointLight( 0xffffff, 100 );
     pointLight.position.set(20, 20, 20)
-    this.camera.add( pointLight );
+    this.add( ambientLight );
+    this.add( pointLight );
 
     // 控制器
     this.controls = new OrbitControls( this.camera, this.renderer.domElement );
@@ -105,8 +114,13 @@ export class Engine extends Scene {
     this.renderer.setPixelRatio( window.devicePixelRatio );
     //设置页面大小
     this.renderer.setSize(window.innerWidth, window.innerHeight, true);
+    this.renderer.autoClear = true
+		this.renderer.outputColorSpace = SRGBColorSpace
     // 色调映射
     this.renderer.toneMapping = ReinhardToneMapping
+    this.renderer.toneMappingExposure = 2
+    this.renderer.shadowMap.enabled = true
+		this.renderer.shadowMap.type = PCFSoftShadowMap
     // 添加场景到页面上
     this.dom.appendChild(this.renderer.domElement);
     this.dom.appendChild(statsDom)
@@ -222,6 +236,19 @@ export class Engine extends Scene {
       }
     })
   }
+  setMaterialMap(intersectObject: Mesh){
+    // 纹理贴图
+    const texture: TextureLoader = new TextureLoader();
+    const mapTexture: Texture = texture.load("/models/maps/20.jpg");
+    let material = intersectObject.material as MeshStandardMaterial
+    material.map = mapTexture;
+    material.map.wrapS = MirroredRepeatWrapping;
+    material.map.wrapT = MirroredRepeatWrapping;
+    material.map.flipY = false
+    material.map.colorSpace = SRGBColorSpace
+    material.map.minFilter = LinearFilter;
+    material.map.magFilter = LinearFilter;
+  }
   modelEvent(){
     // 模型点击获取事件
     let eventManager = new EventManager(this.renderer.domElement, this.camera, this)
@@ -232,7 +259,9 @@ export class Engine extends Scene {
       }
       let intersectObject = (event as any).intersectObject as (Mesh|null);
       console.log("Current Clicked Object: ", intersectObject)
+      
       if(intersectObject){
+        this.setMaterialMap(intersectObject)
         this.toggleBloom(true, intersectObject)
         // this.add(this.transformControls)
         this.transformControls.attach(intersectObject)
